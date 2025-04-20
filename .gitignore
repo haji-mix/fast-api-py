@@ -1,0 +1,23 @@
+# Python-specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+venv/
+.env/
+env/
+
+# IDE files
+.idea/
+.vscode/
+
+# Misc
+*.log
+*.DS_Store
