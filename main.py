@@ -105,7 +105,7 @@ def load_apis():
                     "description": meta["description"],
                     "path": "/api" + original_path,
                     "method": method.upper(),
-                    "author": meta.get("author", "Unknown"),
+                    "author": meta.get("author", "Kenneth Panio"),
                     "version": meta.get("version", "1.0"),
                     "parameters": parameters,
                     "media_type": response_media_type
@@ -123,7 +123,7 @@ def load_apis():
 # Load all API modules
 api_routes = load_apis()
 
-# Home redirect to Swagger UI
+# Home redirect to Swagger UI Lazy Docs
 @app.get("/", include_in_schema=False)
 async def root():
     raise HTTPException(status_code=302, headers={"Location": "/lazy-docs"})
