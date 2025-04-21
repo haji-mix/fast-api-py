@@ -9,7 +9,7 @@ import re
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
-app = FastAPI(openapi_url=None, docs_url=None)  # Disable Swagger and OpenAPI
+app = FastAPI(docs_url="/lazy-docs", openapi_url="/openapi.json")
 
 # Directory setup
 api_folder = Path(__file__).parent / "api"
@@ -103,7 +103,7 @@ def load_apis():
 api_routes = load_apis()
 
 # Documentation routes
-@app.get("/docs", include_in_schema=False)
+"""@app.get("/docs", include_in_schema=False)
 async def custom_docs(request: Request):
     routes_data = {
         "routes": api_routes
@@ -113,11 +113,11 @@ async def custom_docs(request: Request):
         route["parameters"] = [{"name": p["name"], "type": p["type"], "required": p["required"], "default": p.get("default")} for p in route["parameters"]]
     
     return templates.TemplateResponse("docs.html", {"request": request, "data": routes_data})
-
-# Home redirect to docs
+"""
+# Home redirect to Swagger UI
 @app.get("/", include_in_schema=False)
 async def root():
-    raise HTTPException(status_code=302, headers={"Location": "/docs"})
+    raise HTTPException(status_code=302, headers={"Location": "/lazy-docs"})
 
 # Run the application
 if __name__ == "__main__":
