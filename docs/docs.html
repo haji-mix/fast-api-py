@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        #api-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .api-item {
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+        .api-item h3 {
+            margin: 0;
+        }
+        .api-item p {
+            margin: 5px 0;
+        }
+        button {
+            margin: 5px 0;
+        }
+        #response {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Tester</h1>
+    <ul id="api-list">
+        {% for route in data.routes %}
+        <li class="api-item">
+            <h3>{{ route.name }}</h3>
+            <p>Description: {{ route.description }}</p>
+            <p>Method: {{ route.method }}</p>
+            <p>Path: {{ route.path }}</p>
+            <button onclick="fetchAPI('{{ route.path }}', '{{ route.method }}')">Test</button>
+            <button onclick="copyToClipboard('{{ request.url.scheme }}://{{ request.url.netloc }}{{ route.path }}')">Copy Endpoint</button>
+        </li>
+        {% endfor %}
+    </ul>
+    <div id="response"></div>
+
+    <script>
+        // Function to copy text to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Endpoint copied to clipboard');
+            }, () => {
+                alert('Failed to copy endpoint');
+            });
+        }
+
+        // Function to fetch and display API response
+        function fetchAPI(endpoint, method) {
+            const url = '{{ request.url.scheme }}://{{ request.url.netloc }}' + endpoint;
+            fetch(url, { method: method })
+                .then(response => {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json();
+                    } else if (contentType && contentType.includes('text')) {
+                        return response.text();
+                    } else {
+                        // For other types, we'll create a blob and provide a download link
+                        return response.blob().then(blob => {
+                            const a = document.createElement('a');
+                            a.href = URL.createObjectURL(blob);
+                            a.download = endpoint.split('/').pop() || 'download';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        });
+                    }
+                })
+                .then(data => {
+                    if (data !== undefined) {
+                        document.getElementById('response').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('response').innerHTML = 'Error: ' + error.message;
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 # api/test.py
 
 meta = {
-    "name": "Test Endpoint",
+    "name": "test",
     "path": "/test?q=hello",
     "method": "GET",
     "description": "Test endpoint with query param",

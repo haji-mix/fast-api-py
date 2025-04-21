@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation & Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .copy-btn {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+        }
+        .test-area {
+            margin-top: 20px;
+        }
+        #response {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #fff;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API Documentation & Tester</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Method</th>
+                    <th>Path</th>
+                    <th>Description</th>
+                    <th>Author</th>
+                    <th>Version</th>
+                    <th>Action</th>
+                    <th>Parameters</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for route in data.routes %}
+                    <tr>
+                        <td>{{ route.name }}</td>
+                        <td>{{ route.method }}</td>
+                        <td id="path{{ loop.index }}">{{ route.path }}</td>
+                        <td>{{ route.description }}</td>
+                        <td>{{ route.author }}</td>
+                        <td>{{ route.version }}</td>
+                        <td>
+                            <button class="copy-btn" onclick="copyToClipboard('path{{ loop.index }}')">Copy Endpoint</button>
+                            <button onclick="prepareTest('{{ route.method }}', '{{ route.path }}', {{ route.parameters | tojson }})">Test</button>
+                        </td>
+                        <td>
+                            {% if route.parameters %}
+                                <ul>
+                                    {% for param in route.parameters %}
+                                        <li>{{ param.name }} ({{ param.type }}){% if not param.required %} - Default: {{ param.default }}{% endif %}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                None
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="test-area">
+            <h2>API Response</h2>
+            <div id="response"></div>
+            <div id="paramForm"></div>
+        </div>
+    </div>
+    <script>
+        function copyToClipboard(elementId) {
+            var copyText = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(copyText).then(() => {
+                alert("Endpoint copied to clipboard: " + copyText);
+            });
+        }
+
+        function prepareTest(method, path, parameters) {
+            let formHtml = '<form id="apiForm">';
+            parameters.forEach(param => {
+                formHtml += `<label for="${param.name}">${param.name} (${param.type}):</label>`;
+                formHtml += `<input type="text" id="${param.name}" name="${param.name}" ${param.required ? 'required' : ''}>`;
+                if (!param.required) {
+                    formHtml += `<small>Default: ${param.default || 'None'}</small>`;
+                }
+                formHtml += '<br>';
+            });
+            formHtml += `<button type="submit" onclick="event.preventDefault(); testApi('${method}', '${path}');">Send Request</button>`;
+            formHtml += '</form>';
+
+            document.getElementById('paramForm').innerHTML = formHtml;
+        }
+
+        function testApi(method, path) {
+            const origin = window.location.origin;
+            const url = origin + path;
+            const formData = new FormData(document.getElementById('apiForm'));
+
+            let init = {
+                method: method,
+                headers: {}
+            };
+
+            if (method.toLowerCase() === 'get') {
+                // Construct query string for GET requests
+                const params = new URLSearchParams();
+                for (var pair of formData.entries()) {
+                    if (pair[1]) params.append(pair[0], pair[1]);
+                }
+                const query = params.toString();
+                fetch(url + '?' + query, init)
+                    .then(handleResponse)
+                    .catch(handleError);
+            } else {
+                // For POST, PUT, etc., send form data in body
+                init.body = formData;
+                fetch(url, init)
+                    .then(handleResponse)
+                    .catch(handleError);
+            }
+        }
+
+        function handleResponse(response) {
+            const contentType = response.headers.get("content-type");
+            if (contentType.includes("application/json")) {
+                return response.json().then(data => {
+                    document.getElementById('response').innerText = JSON.stringify(data, null, 2);
+                });
+            } else if (contentType.includes("text")) {
+                return response.text().then(text => {
+                    document.getElementById('response').innerText = text;
+                });
+            } else {
+                return response.blob().then(blob => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = path.split('/').pop() || 'download';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+            }
+        }
+
+        function handleError(error) {
+            document.getElementById('response').innerText = 'Error: ' + error;
+        }
+    </script>
+</body>
+</html>
