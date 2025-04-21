@@ -7,16 +7,13 @@ from pathlib import Path
 import inspect
 import re
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response
 
 app = FastAPI(docs_url="/lazy-docs", openapi_url="/openapi.json")
 
 # Directory setup
 api_folder = Path(__file__).parent / "api"
 templates = Jinja2Templates(directory="templates")
-
-# Mount static files
-# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Pydantic model for POST body
 class RequestBody(BaseModel):
@@ -73,6 +70,35 @@ def load_apis():
                             param_info['default'] = param.default
                         parameters.append(param_info)
                 
+                # Get response media type from meta, default to application/json
+                response_media_type = meta.get("media_type", "application/json")
+                
+                # Define responses for Swagger documentation
+                responses = {
+                    200: {
+                        "content": {response_media_type: {}},
+                        "description": "Successful response"
+                    }
+                }
+                
+                # Register the route with the appropriate response class
+                if method == "post":
+                    app.add_api_route(
+                        path,
+                        module.on_start,
+                        methods=["POST"],
+                        responses=responses,
+                        response_class=Response
+                    )
+                else:
+                    app.add_api_route(
+                        path,
+                        module.on_start,
+                        methods=["GET"],
+                        responses=responses,
+                        response_class=Response
+                    )
+                
                 # Create route info with documentation data (using original path)
                 route_info = {
                     "name": meta["name"],
@@ -81,16 +107,11 @@ def load_apis():
                     "method": method.upper(),
                     "author": meta.get("author", "Unknown"),
                     "version": meta.get("version", "1.0"),
-                    "parameters": parameters
+                    "parameters": parameters,
+                    "media_type": response_media_type
                 }
                 
                 routes_info.append(route_info)
-                
-                # Register the route with the clean path
-                if method == "post":
-                    app.add_api_route(path, module.on_start, methods=["POST"])
-                else:
-                    app.add_api_route(path, module.on_start, methods=["GET"])
                 
                 print(f"Loaded route: {meta['name']} ({method.upper()} {path})")
             
@@ -102,18 +123,6 @@ def load_apis():
 # Load all API modules
 api_routes = load_apis()
 
-# Documentation routes
-"""@app.get("/docs", include_in_schema=False)
-async def custom_docs(request: Request):
-    routes_data = {
-        "routes": api_routes
-    }
-    # Convert parameters to a JSON-serializable format if needed
-    for route in routes_data["routes"]:
-        route["parameters"] = [{"name": p["name"], "type": p["type"], "required": p["required"], "default": p.get("default")} for p in route["parameters"]]
-    
-    return templates.TemplateResponse("docs.html", {"request": request, "data": routes_data})
-"""
 # Home redirect to Swagger UI
 @app.get("/", include_in_schema=False)
 async def root():

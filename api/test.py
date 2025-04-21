@@ -9,5 +9,5 @@ meta = {
 
 from fastapi import Query
 
-def on_start(q: str = Query(...)):
+def on_start(q: str = Query(..., description="A greeting message to be echoed back")):
     return {"message": f"You sent: {q}"}

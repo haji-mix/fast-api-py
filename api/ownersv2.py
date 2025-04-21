@@ -9,7 +9,8 @@ meta = {
     "name": "ownersv2",
     "description": "Returns a random ownersv2 video from a predefined list of video URLs or local files",
     "path": "/ownersv2",
-    "method": "GET"
+    "method": "GET",
+    "media_type": "video/mp4"
 }
 
 # Predefined list of video sources (URLs or local file paths)
@@ -34,7 +35,7 @@ async def on_start(request: Request):
                 # Read local file
                 with open(file_path, "rb") as file:
                     video_bytes = file.read()
-                return Response(content=video_bytes, media_type="video/mp4")
+                return Response(content=video_bytes, media_type=meta["media_type"])
             else:
                 return {"error": f"Local video file not found: {selected_source}"}
         
@@ -45,7 +46,7 @@ async def on_start(request: Request):
                     return {"error": f"Failed to fetch video: {response.status}"}
                 
                 video_bytes = await response.read()
-                return Response(content=video_bytes, media_type="video/mp4")
+                return Response(content=video_bytes, media_type=meta["media_type"])
                 
     except Exception as e:
         return {"error": str(e)}
